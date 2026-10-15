@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f5f1e8">
+  <meta name="description" content="选择困难就交给运气：添加自己的菜单，一键决定今天吃什么。">
+  <title>今天吃什么 · 好好吃饭</title>
+  <style>
+    :root{color-scheme:light;--ink:#263b31;--muted:#6b766c;--paper:#f5f1e8;--green:#365c43;--line:#dddccd}
+    *{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font-family:system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;line-height:1.6}
+    main{max-width:850px;margin:auto;padding:32px 24px 52px}header{display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line);padding-bottom:18px;font-size:14px}header strong{font-size:17px}header span{color:var(--muted)}
+    .hero{text-align:center;padding:48px 0 24px}.eyebrow{font-size:12px;letter-spacing:3px;color:var(--muted)}h1{font-size:clamp(36px,7vw,56px);letter-spacing:-2px;line-height:1.2;margin:14px 0}p{color:var(--muted)}.hero p{margin:0}
+    .card{background:#fffdf7;border:1px solid var(--line);border-radius:28px;text-align:center;padding:34px 24px;box-shadow:0 12px 38px #354b3010}.plate{display:grid;place-items:center;margin:0 auto 18px;width:108px;height:108px;border-radius:50%;background:#edf0df;border:8px solid #f7f6ed;box-shadow:0 0 0 1px #dfe3d4;font-size:48px}.hint{font-size:13px;color:var(--muted);margin:0}#result{font-size:clamp(26px,6vw,40px);line-height:1.4;margin:8px 0 24px;overflow-wrap:anywhere}button,input{font:inherit}button{cursor:pointer;touch-action:manipulation}button:disabled{cursor:default;opacity:.6}button:focus-visible,input:focus-visible{outline:3px solid #b78536;outline-offset:4px}.primary{background:var(--green);color:white;border:0;padding:14px 36px;border-radius:14px;font-weight:650;font-size:17px;min-width:210px}.primary:hover{background:#284c34}.note{font-size:12px;margin:16px 0 0}.menu{margin-top:32px}.menu-heading{display:flex;align-items:center;justify-content:space-between;gap:12px}h2{font-size:19px;margin:0}.count{font-size:13px;color:var(--muted)}form{display:flex;gap:10px;margin:16px 0}input{min-width:0;flex:1;border:1px solid var(--line);border-radius:12px;padding:12px 14px;background:#fffdf7;color:var(--ink)}.add{border:0;background:#e1e8d7;color:var(--ink);border-radius:12px;padding:10px 20px;font-weight:600}#dishes{display:flex;flex-wrap:wrap;gap:10px;list-style:none;margin:0;padding:0}.chip{display:flex;align-items:center;max-width:100%;gap:8px;background:#fffdf7;border:1px solid var(--line);border-radius:99px;padding:5px 7px 5px 15px;font-size:14px}.chip span{overflow-wrap:anywhere}.remove{border:0;background:transparent;color:var(--muted);width:32px;height:32px;border-radius:50%;font-size:20px;flex-shrink:0}.remove:hover{background:#f4e6dd;color:#8d3d26}#message{font-size:13px;color:#7e4b24;min-height:24px;margin:10px 0}.empty{color:var(--muted);font-size:14px}footer{margin-top:35px;border-top:1px solid var(--line);padding-top:18px;text-align:center;color:var(--muted);font-size:12px}.rolling .plate{animation:wiggle .22s infinite alternate}@keyframes wiggle{to{transform:rotate(12deg)}}@media(prefers-reduced-motion:reduce){.rolling .plate{animation:none}}@media(max-width:480px){main{padding:20px 18px 36px}.hero{padding-top:34px}header span{font-size:12px}.card{padding:28px 18px}form{gap:8px}.add{padding:10px 15px}}
+  </style>
+</head>
+<body>
+<main>
+  <header><strong>🥢 好好吃饭</strong><span>把纠结留给今天的菜单</span></header>
+  <section class="hero"><div class="eyebrow">A LITTLE HELP FOR EVERY MEAL</div><h1>今天，吃点什么？</h1><p>不知道吃什么的时候，让运气帮你选。</p></section>
+  <section class="card" aria-label="随机选菜">
+    <div class="plate" aria-hidden="true">🍚</div>
+    <p class="hint">今日菜单，由你定义</p>
+    <h2 id="result" aria-live="polite" aria-atomic="true">下一顿，有着落了</h2>
+    <button class="primary" id="pick" type="button">帮我选一道 ↗</button>
+    <p class="note">一点小随机，也是一点小期待。</p>
+  </section>
+  <section class="menu" aria-labelledby="menu-title">
+    <div class="menu-heading"><h2 id="menu-title">我的菜单</h2><span class="count" id="count"></span></div>
+    <form id="add-form"><input id="dish-input" aria-label="想吃的菜名" placeholder="加一道你爱吃的，比如：番茄牛腩" maxlength="30" required autocomplete="off"><button class="add" type="submit">＋ 添加</button></form>
+    <ul id="dishes" aria-label="可选菜品"></ul>
+    <p id="message" role="status"></p>
+  </section>
+  <footer>好好吃饭，认真生活。<br>菜单仅保存在当前浏览器，不会同步到其他设备。</footer>
+</main>
+<script>
+  'use strict';
+  // 默认菜单：可以把这里的菜名换成自己喜欢的。
+  const defaults = ['番茄炒蛋', '红烧牛肉面', '饺子', '宫保鸡丁', '寿司', '麻辣烫', '咖喱鸡饭', '披萨'];
+  const key = 'what-to-eat.menu.v1';
+  let dishes = [...defaults], lastPick = '', busy = false, storageAvailable = true;
+  try {
+    const saved = JSON.parse(localStorage.getItem(key));
+    if (Array.isArray(saved) && saved.length <= 100 && saved.every(x => typeof x === 'string' && x.trim().length > 0 && x.length <= 30)) dishes = [...new Set(saved.map(x => x.trim()))];
+  } catch { storageAvailable = false; }
+  const list = document.querySelector('#dishes');
+  const pick = document.querySelector('#pick');
+  const result = document.querySelector('#result');
+  const input = document.querySelector('#dish-input');
+  const message = document.querySelector('#message');
+  const card = document.querySelector('.card');
+  function save() {
+    try { localStorage.setItem(key, JSON.stringify(dishes)); storageAvailable = true; }
+    catch { storageAvailable = false; message.textContent = '浏览器暂时无法保存菜单，关闭或刷新页面后可能丢失。'; }
+  }
+  function render() {
+    list.replaceChildren();
+    document.querySelector('#count').textContent = dishes.length + ' 道备选';
+    pick.disabled = busy || dishes.length === 0;
+    dishes.forEach((dish, index) => {
+      const item = document.createElement('li'); item.className = 'chip';
+      const label = document.createElement('span'); label.textContent = dish;
+      const remove = document.createElement('button'); remove.type = 'button'; remove.className = 'remove';
+      remove.textContent = '×'; remove.setAttribute('aria-label', '移除' + dish); remove.disabled = busy;
+      remove.addEventListener('click', () => {
+        dishes.splice(index, 1); message.textContent = '已移除：' + dish; save(); render();
+        const next = list.querySelectorAll('button');
+        if (next.length) next[Math.min(index, next.length - 1)].focus(); else input.focus();
+      });
+      item.append(label, remove); list.append(item);
+    });
+    if (!dishes.length) {
+      const empty = document.createElement('li'); empty.className = 'empty'; empty.textContent = '菜单还是空的，先添加一道喜欢的菜吧。'; list.append(empty);
+      result.textContent = '先加一道你喜欢的菜';
+    }
+  }
+  document.querySelector('#add-form').addEventListener('submit', event => {
+    event.preventDefault(); const dish = input.value.trim();
+    if (!dish) { message.textContent = '先输入一个菜名吧。'; return; }
+    if (dishes.includes(dish)) { message.textContent = '这道菜已经在菜单里啦。'; return; }
+    if (dishes.length >= 100) { message.textContent = '菜单最多放 100 道菜，先移除一道再添加吧。'; return; }
+    dishes.push(dish); message.textContent = '已添加：' + dish; input.value = ''; save(); render(); input.focus();
+  });
+  pick.addEventListener('click', () => {
+    if (busy || !dishes.length) return;
+    busy = true; pick.textContent = '正在帮你选…'; result.textContent = '让美味再转一圈…'; card.classList.add('rolling'); render();
+    setTimeout(() => {
+      // 菜单有多道菜时，避免连续选到同一道。
+      const pool = dishes.length > 1 ? dishes.filter(dish => dish !== lastPick) : dishes;
+      lastPick = pool[Math.floor(Math.random() * pool.length)];
+      result.textContent = lastPick; busy = false; card.classList.remove('rolling'); pick.textContent = '再帮我选一次 ↻'; render();
+    }, matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 650);
+  });
+  render();
+  if (!storageAvailable) message.textContent = '浏览器暂时无法读取保存的菜单，已加载默认菜品。';
+</script>
+</body>
+</html>
